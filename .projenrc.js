@@ -27,4 +27,5 @@ const project = new JsiiProject({
   mergify: false, // Disabling because it is a demo project
   publishToMaven: mavenData
 });
+
 project.synth();
