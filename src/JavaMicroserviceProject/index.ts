@@ -1,8 +1,8 @@
-import * as fs from 'fs-extra'; // eslint-disable-line
+//import * as fs from 'fs-extra'; // eslint-disable-line
 import * as path from 'path'; // eslint-disable-line
 import { Component, SampleDir, TextFile } from 'projen';
 import { JavaProject, JavaProjectOptions } from 'projen/lib/java';
-import { pascalCase } from '../pascalCase';
+//import { pascalCase } from '../pascalCase';
 
 export interface JavaMicroserviceProjectOptions extends JavaProjectOptions {
   /**
@@ -45,7 +45,7 @@ export class JavaMicroserviceProject extends JavaProject {
     //   new Sample(this);
     // }
   }
-  
+
 }
 
 class Sample extends Component {
