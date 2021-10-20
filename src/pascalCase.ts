@@ -43,3 +43,4 @@ export function pascalCase(input: string) {
     return input.replace(/[_.\- ]+([\p{Alpha}\p{N}_]|$)/gu, (_: any, p1: any) => p1.toLocaleUpperCase(options.locale))
       .replace(/\d+([\p{Alpha}\p{N}_]|$)/gu, m => m.toLocaleUpperCase(options.locale));
   };
+  
