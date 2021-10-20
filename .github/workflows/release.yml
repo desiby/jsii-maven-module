@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
       - name: Set git identity
         run: |-
-          git config user.name "Automation"
+          git config user.name "github-actions"
           git config user.email "github-actions@github.com"
       - name: Install dependencies
         run: yarn install --check-files --frozen-lockfile
@@ -39,7 +39,7 @@ jobs:
           name: dist
           path: dist
     container:
-      image: jsii/superchain:node14
+      image: jsii/superchain:1-buster-slim
   release_github:
     name: Publish to GitHub Releases
     needs: release
@@ -83,4 +83,28 @@ jobs:
           NPM_REGISTRY: registry.npmjs.org
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     container:
-      image: jsii/superchain:node14
+      image: jsii/superchain:1-buster-slim-node14
+  release_maven:
+    name: Publish to Maven Central
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    if: needs.release.outputs.latest_commit == github.sha
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: dist
+          path: dist
+      - name: Release
+        run: npx -p jsii-release@latest jsii-release-maven
+        env:
+          MAVEN_ENDPOINT: https://maven.pkg.github.com/
+          MAVEN_SERVER_ID: github
+          MAVEN_REPOSITORY_URL: https://maven.pkg.github.com/desiby/jsii-maven-module
+          MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ github.actor }}
+    container:
+      image: jsii/superchain:1-buster-slim-node14
