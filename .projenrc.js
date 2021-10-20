@@ -1,6 +1,4 @@
 const { JsiiProject } = require('projen');
-
-
 const mavenData = {
   javaPackage: 'jar',
   mavenArtifactId: 'jsii-java-module',
@@ -9,7 +7,6 @@ const mavenData = {
   mavenRepositoryUrl: 'https://maven.pkg.github.com/desiby/jsii-maven-module',
   mavenServerId: 'github'
 };
-
 const project = new JsiiProject({
   author: 'desiby',
   authorAddress: 'desiby@hotmail.com',
