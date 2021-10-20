@@ -16,7 +16,6 @@ const project = new JsiiProject({
   defaultReleaseBranch: 'main',
   name: 'jsii-maven-module',
   repositoryUrl: 'https://github.com/desiby/jsii-maven-module.git',
-
   deps: ['projen'],
   description: "projen jsii module for maven",
   peerDeps: ['projen'],
