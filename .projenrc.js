@@ -14,7 +14,7 @@ const project = new JsiiProject({
   name: 'jsii-maven-module',
   repositoryUrl: 'https://github.com/desiby/jsii-maven-module.git',
   deps: ['projen'],
-  description: "projen jsii module for maven",
+  description: "projen jsii module for maven to be reused in java projects",
   peerDeps: ['projen'],
   // devDeps: [],
   // packageName: undefined,

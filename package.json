@@ -1,6 +1,6 @@
 {
   "name": "jsii-maven-module",
-  "description": "projen jsii module for maven",
+  "description": "projen jsii module for maven to be reused in java projects",
   "repository": {
     "type": "git",
     "url": "https://github.com/desiby/jsii-maven-module.git"
