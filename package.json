@@ -1,5 +1,5 @@
 {
-  "name": "jsii-maven-module",
+  "name": "@desiby/projen-java-demo",
   "description": "projen jsii module for maven to be reused in java projects",
   "repository": {
     "type": "git",
@@ -21,7 +21,6 @@
     "eslint": "npx projen eslint",
     "compat": "npx projen compat",
     "publish:npm": "npx projen publish:npm",
-    "publish:maven": "npx projen publish:maven",
     "docgen": "npx projen docgen",
     "release": "npx projen release",
     "upgrade": "npx projen upgrade",
@@ -34,6 +33,7 @@
     "organization": false
   },
   "devDependencies": {
+    "@types/fs-extra": "^8",
     "@types/jest": "^27.0.2",
     "@types/node": "^14.17.0",
     "@typescript-eslint/eslint-plugin": "^5.1.0",
@@ -42,6 +42,7 @@
     "eslint-import-resolver-node": "^0.3.6",
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-import": "^2.25.2",
+    "fs-extra": "^10.0.0",
     "jest": "^27.3.1",
     "jest-junit": "^12",
     "jsii": "^1.39.0",
@@ -64,6 +65,9 @@
   "bundledDependencies": [],
   "main": "lib/index.js",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "version": "0.0.0",
   "jest": {
     "testMatch": [
@@ -108,15 +112,7 @@
   "stability": "stable",
   "jsii": {
     "outdir": "dist",
-    "targets": {
-      "java": {
-        "package": "jar",
-        "maven": {
-          "groupId": "com.desiby",
-          "artifactId": "jsii-java-module"
-        }
-      }
-    },
+    "targets": {},
     "tsc": {
       "outDir": "lib",
       "rootDir": "src"

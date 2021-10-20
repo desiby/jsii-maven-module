@@ -189,7 +189,7 @@
       "description": "Publish this package to npm",
       "env": {
         "NPM_DIST_TAG": "latest",
-        "NPM_REGISTRY": "registry.npmjs.org"
+        "NPM_REGISTRY": "npm.pkg.github.com"
       },
       "requiredEnv": [
         "NPM_TOKEN"
@@ -197,24 +197,6 @@
       "steps": [
         {
           "exec": "npx -p jsii-release@latest jsii-release-npm"
-        }
-      ]
-    },
-    "publish:maven": {
-      "name": "publish:maven",
-      "description": "Publish this package to Maven Central",
-      "env": {
-        "MAVEN_ENDPOINT": "https://maven.pkg.github.com/",
-        "MAVEN_SERVER_ID": "github",
-        "MAVEN_REPOSITORY_URL": "https://maven.pkg.github.com/desiby/jsii-maven-module"
-      },
-      "requiredEnv": [
-        "MAVEN_PASSWORD",
-        "MAVEN_USERNAME"
-      ],
-      "steps": [
-        {
-          "exec": "npx -p jsii-release@latest jsii-release-maven"
         }
       ]
     },
@@ -277,7 +259,7 @@
           "exec": "yarn install --check-files"
         },
         {
-          "exec": "yarn upgrade @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-import-resolver-node eslint-import-resolver-typescript eslint-plugin-import jest jest-junit jsii jsii-diff jsii-docgen jsii-pacmak json-schema npm-check-updates standard-version ts-jest typescript"
+          "exec": "yarn upgrade @types/fs-extra @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-import-resolver-node eslint-import-resolver-typescript eslint-plugin-import fs-extra jest jest-junit jsii jsii-diff jsii-docgen jsii-pacmak json-schema npm-check-updates standard-version ts-jest typescript"
         },
         {
           "exec": "npx projen"

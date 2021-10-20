@@ -1,0 +1,1096 @@
+variables:
+  APPLICATION: ls
+  AWS_DEFAULT_REGION: us-gov-west-1
+  COMMERCIAL_AWS_DEFAULT_REGION: us-west-1
+  REGION_SHORTNAME: usgw1
+  AWS_PARTITION: aws-us-gov
+  DEV_GOV_ACCOUNT: "432297751878"
+  DEV_GOV_ACCOUNT_NAME: locationservices_dev_gov
+  DEV_COM_ACCOUNT: "938058899594"
+  DEV_COM_ACCOUNT_NAME: locationservices-dev
+  TEST_GOV_ACCOUNT: "432300128442"
+  TEST_GOV_ACCOUNT_NAME: locationservices_test_gov
+  TEST_COM_ACCOUNT: "053737528393"
+  TEST_COM_ACCOUNT_NAME: locationservices-test
+  PROD_GOV_ACCOUNT: "432447890155"
+  PROD_GOV_ACCOUNT_NAME: locationservices_prod_gov #update name in AWS
+  PROD_COM_ACCOUNT: "404053527514"
+  PROD_COM_ACCOUNT_NAME: locationservices-prod #update name in AWS
+  CI_ROLE_NAME: Terraform
+  PIPENV_VENV_IN_PROJECT: enabled
+  LAMBDA_DOCKER_IMAGE: $CI_REGISTRY_IMAGE/lambda-emulator:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+  E2ETESTS_BRANCH: master
+  SERVICE_NAME: $CI_PROJECT_NAME
+  JAR_FILEPATH: target/locationServices.jar
+  PROJECT_TYPE: api
+  # Navigates to updated synth path at cdk/terraform/$STACK_TYPE/cdktf.out/stacks/$STACK_TYPE
+  # Feature flag that will be removed once all cdktf apps migrate to version >=0.3.0
+  CDKTF_UPGRADE_PATH: "true"
+  CDKTF_DIR: infra
+
+default:
+  tags:
+    - non-privileged
+
+include:
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.script_sam_deploy.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.before_script_assume_role.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.script_delete_sam_stack.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.script_cdktf_deploy.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.script_lambda_authorizer_put.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.kaniko_build.yml'
+
+  # modularize
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.build-jar.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/cdktf/deploy/.cdktf-deploy.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/tests/.unit.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/tests/.integration.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/tests/.functional.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/dbmigration/.db-migration.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/cdktf/deploy/.serverless.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/tests/.e2e-dev.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/tests/.e2e-test.yml'
+  - project: 'idemia/microservices_collaboration/microservicecitemplates'
+    ref: master
+    file: '/templates/.authorizers.yml'
+
+.dev_variables: &dev_variables
+  STACK_NAME: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}-${REGION_SHORTNAME}"
+  APP_ENVIRONMENT: dev
+  GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${DEV_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  COM_SERVICE_ROLE: "arn:aws:iam::${DEV_COM_ACCOUNT}:role/${CI_ROLE_NAME}"
+  LAMBDA_AUTHORIZER_ACCOUNT: "056286611563"
+  MTLS_LAMBDA_AUTHORIZER_NAME: lambdaauth-test-master-usgw1-mtls
+  MTLS_LAMBDA_AUTHORIZER_TABLE_NAME: MTLSAuthorizerTable-master
+  OAUTH_LAMBDA_AUTHORIZER_NAME: lambdaauth-test-master-usgw1-oauth
+  OAUTH_LAMBDA_AUTHORIZER_TABLE_NAME: OAuthAuthorizerTable-master
+  ACCOUNT_NAME: "${DEV_GOV_ACCOUNT_NAME}"
+  DEPLOY_TO_ACCOUNT: "${DEV_GOV_ACCOUNT}"
+  AUTH_CERT: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/NONPROD_AUTH_CERT
+  TF_VAR_environment: dev
+  TF_VAR_ca_trustfile_path: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/NONPROD_CA_TRUSTFILE
+  TF_STATE_S3_BUCKET_NAME: $CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+  TF_CLI_ARGS_init: -backend-config bucket=$CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+
+.test_variables: &test_variables
+  STACK_NAME: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}-${REGION_SHORTNAME}"
+  APP_ENVIRONMENT: test
+  GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${TEST_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  COM_SERVICE_ROLE: "arn:aws:iam::${TEST_COM_ACCOUNT}:role/${CI_ROLE_NAME}"
+  LAMBDA_AUTHORIZER_ACCOUNT: "056286611563"
+  MTLS_LAMBDA_AUTHORIZER_NAME: lambdaauth-test-master-usgw1-mtls
+  MTLS_LAMBDA_AUTHORIZER_TABLE_NAME: MTLSAuthorizerTable-master
+  OAUTH_LAMBDA_AUTHORIZER_NAME: lambdaauth-test-master-usgw1-oauth
+  OAUTH_LAMBDA_AUTHORIZER_TABLE_NAME: OAuthAuthorizerTable-master
+  ACCOUNT_NAME: "${TEST_GOV_ACCOUNT_NAME}"
+  DEPLOY_TO_ACCOUNT: "${TEST_GOV_ACCOUNT}"
+  AUTH_CERT: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/NONPROD_AUTH_CERT
+  TF_VAR_environment: test
+  TF_VAR_ca_trustfile_path: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/NONPROD_CA_TRUSTFILE
+  TF_STATE_S3_BUCKET_NAME: $CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+  TF_CLI_ARGS_init: -backend-config bucket=$CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+
+.prod_variables: &prod_variables
+  STACK_NAME: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}-${REGION_SHORTNAME}"
+  APP_ENVIRONMENT: prod
+  GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${PROD_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  COM_SERVICE_ROLE: "arn:aws:iam::${PROD_COM_ACCOUNT}:role/${CI_ROLE_NAME}"
+  LAMBDA_AUTHORIZER_ACCOUNT: "056286611563"
+  MTLS_LAMBDA_AUTHORIZER_NAME: lambdaauth-prod-master-usgw1-mtls
+  MTLS_LAMBDA_AUTHORIZER_TABLE_NAME: MTLSAuthorizerTable-master
+  OAUTH_LAMBDA_AUTHORIZER_NAME: lambdaauth-prod-master-usgw1-oauth
+  OAUTH_LAMBDA_AUTHORIZER_TABLE_NAME: OAuthAuthorizerTable-master
+  ACCOUNT_NAME: "${PROD_GOV_ACCOUNT_NAME}"
+  DEPLOY_TO_ACCOUNT: "${PROD_GOV_ACCOUNT}"
+  AUTH_CERT: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/PROD_AUTH_CERT
+  TF_VAR_environment: prod
+  TF_VAR_ca_trustfile_path: $CI_PROJECT_DIR/../$CI_PROJECT_NAME.tmp/PROD_CA_TRUSTFILE
+  TF_STATE_S3_BUCKET_NAME: $CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+  TF_CLI_ARGS_init: -backend-config bucket=$CI_PROJECT_NAME-$APP_ENVIRONMENT-$AWS_DEFAULT_REGION-remote-state
+
+stages:
+- build-and-test
+- post-build
+- functional-tests
+- deploy-dev-infra
+- deploy-dev-db
+- dev-db-migration
+- deploy-dev-review
+- deploy-dev
+- post-deploy-dev
+- e2e-dev-env
+- deploy-test-infra
+- deploy-test-db
+- test-db-migration
+- deploy-test-review
+- deploy-test
+- post-deploy-test
+- e2e-test-env
+- deploy-prod-infra
+- deploy-prod-db
+- prod-db-migration
+- deploy-prod
+- post-deploy-prod
+- stop-envs
+
+# delete-env:
+#   extends:
+#     - .before_script_assume_role
+#   image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/sam-cli:master-12e9785a
+#   stage: build-and-test
+#   variables:
+#     <<: *dev_variables
+#     BRANCH_NAME: ea-567
+#     CDKTF_APP_NETWORKING: networking
+#     CDKTF_APP_KMS: kms
+#     TF_VAR_pipeline_iam_role: default
+#     TF_VAR_private_subnets: default
+#     TF_VAR_public_subnets: default
+#     TF_VAR_vpc_id: default
+#     TF_VAR_kms_key_arn: default
+#     TF_VAR_vpc_endpoint_s3_pl_id: default
+#     TF_VAR_rds_bastion_key: default
+#     TF_VAR_route53_zone_id: default
+#     TF_VAR_route53_domain_name: default
+#     TF_VAR_lambda_sg_id: default
+#     TF_VAR_environment: default
+#     TF_VAR_ca_trustfile_path: default
+#     TF_VAR_lambda_authorizer_account: default
+#     TF_VAR_mtls_lambda_authorizer_name: default
+#     TF_VAR_oauth_lambda_authorizer_name: default
+#     TF_VAR_db_connection_string: default
+#     TF_VAR_db_username: default
+#     TF_VAR_db_password: default
+#     TF_VAR_lambda_execution_role_arn: default
+#     TF_VAR_lambda_security_group: default
+#     TF_VAR_vpc_private_subnet_ids: default  
+#     TF_VAR_mtls_domain_name: default
+#     TF_VAR_api_domain_name: default
+#   script:
+#     - |
+#       destroy_cdktf_app() {
+#         export STACK_TYPE="$1"
+#         export TF_PATH=$PROJECT_TYPE/$BRANCH_NAME/$STACK_TYPE
+#         TF_STATE_FILE_EXISTS=$(aws s3 ls s3://${TF_STATE_S3_BUCKET_NAME}/${TF_PATH} --recursive --summarize | grep 'Total Objects' | sed 's/[^0-9]*//g')
+
+#         if [ "$TF_STATE_FILE_EXISTS" -ne "0" ]; then
+#           aws s3 cp s3://$TF_STATE_S3_BUCKET_NAME/$TF_PATH/cdk.tf.json .
+#           terraform init
+#           terraform workspace select $STACK_TYPE
+#           terraform plan -destroy -out=$STACK_TYPE.plan
+#           terraform apply -auto-approve $STACK_TYPE.plan
+#           terraform workspace select default
+#           terraform workspace delete $STACK_TYPE
+#           aws s3 rm s3://$TF_STATE_S3_BUCKET_NAME/$TF_PATH --recursive
+#           rm -rf .terraform*
+#         fi
+#       }
+#     - |
+#       if [[ -v CDKTF_APP_SERVERLESS ]];
+#       then
+#         destroy_cdktf_app "serverless"
+#         unset CDKTF_APP_SERVERLESS
+#       fi
+#     - |
+#       if [[ -v CDKTF_APP_RDS ]];
+#       then
+#         destroy_cdktf_app "rds"
+#         unset CDKTF_APP_RDS
+#       fi
+#     - |
+#       declare -a types=(`for stack_type in ${!CDKTF_APP*}; do echo ${!stack_type}; done`)
+#       for type in "${types[@]}"
+#       do
+#         destroy_cdktf_app $type
+#       done
+
+deploy-hooks-build:
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-12e9785a
+  stage: build-and-test
+  script:
+    - cd deploy-hooks/post-traffic-hooks
+    - pip install -t ./package -r requirements.txt
+    - cd package
+    - zip -r ../../../$CI_PROJECT_NAME.zip .
+    - cd ..
+    - zip -g ../../$CI_PROJECT_NAME.zip main.py
+  artifacts:
+    paths:
+      - $CI_PROJECT_NAME.zip
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+infra:cdktf-synth:
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-12e9785a
+  stage: build-and-test
+  variables:
+    FLYWAY_JAR_VERSION: flyway-all.jar
+    LAMBDA_ARTIFACT_FILEPATH: target/locationServices.jar
+  script:
+    - wget https://github.com/Geekoosh/flyway-lambda/releases/download/v0.5/$FLYWAY_JAR_VERSION
+    - cd cdk/terraform/infra
+    - pipenv install
+    - pipenv run python create_stacks.py
+  artifacts:
+    paths:
+      - cdk/terraform/infra/cdktf.out
+      # kms_policy.tmpl is needed for destroying the KMS stack
+      - cdk/terraform/infra/kms_policy.tmpl
+      # flyway jar file is needed for deploying the RDS stack
+      - $FLYWAY_JAR_VERSION
+      # flyway migrations folder is needed for destroying the RDS stack
+      - flyway-db-migrations/
+      # list of lambda functions with handlers
+      - cdk/terraform/infra/services_list.json
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+build-jar:
+  extends:
+  - .build-jar
+  variables:
+    <<: *dev_variables
+  artifacts:
+    paths:
+      - target/locationServices.jar
+      - target/dependency/*.jar
+    expire_in: 1 week
+
+unit-tests:
+  extends:
+  - .unit
+  variables:
+    PROJECT_NAME: locationServices
+
+integration-tests:
+  extends:
+  - .integration
+  variables:
+    <<: *dev_variables
+    POSTGRES_PASSWORD: testing
+    POSTGRES_USERNAME: postgres
+    POSTGRES_DB: $CI_PROJECT_NAME
+    POSTGRES_ALIAS: locationservicesdb
+    POSTGRES_CONNECTION_URL: jdbc:postgresql://$POSTGRES_ALIAS:5432/$CI_PROJECT_NAME
+    KMS_KEY_ID: alias/locationservices-dev-master
+    PROJECT_NAME: locationServices
+  services:
+    - name: postgres:12.5
+      alias: locationservicesdb
+
+functional-tests:
+ extends:
+   - .before_script_assume_role
+ image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/java-ci:master-12e9785a
+ stage: functional-tests
+ variables:
+   <<: *dev_variables
+   PG_HOST: localhost
+   PG_DATABASE: postgres
+   POSTGRES_USERNAME: postgres
+   POSTGRES_PASSWORD: mysecretpassword
+   DOCKER_DRIVER: overlay
+   DOCKER_HOST: tcp://docker:2375
+   MOCK_TAXJAR_DIR: python-functional-tests/mockTaxJar
+ services:
+   - docker:18.09.7-dind
+ script:
+   - echo "functional tests here..."
+   - mkdir -p $HOME/.docker/
+   - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > $HOME/.docker/config.json
+   - apt update
+   - apt install -y libpq-dev postgresql-client curl
+   - pip3.8 install -r python-functional-tests/requirements.txt
+   - pip3.8 install -e ./python-functional-tests
+   - echo "running python tests"
+   - robot python-functional-tests/locationServices
+ artifacts:
+   paths:
+     - log.html
+     - report.html
+     - output.xml
+     - python-functional-tests/*.txt
+# needs:
+#   - job: lambda-emulator
+ tags:
+   - privileged
+ only:
+   - branches
+   - merge_requests
+
+
+networking-dev:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-dev-infra
+  variables:
+    STACK_TYPE: networking
+    <<: *dev_variables
+  dependencies:
+    - infra:cdktf-synth
+
+dns-dev:cdktf-deploy:
+  stage: deploy-dev-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: dns
+    <<: *dev_variables
+  dependencies:
+    - infra:cdktf-synth
+
+cloudwatch-dev:cdktf-deploy:
+  stage: deploy-dev-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: cloudwatch
+    <<: *dev_variables
+  dependencies:
+    - infra:cdktf-synth
+
+kms-dev:cdktf-deploy:
+  stage: deploy-dev-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: kms
+    <<: *dev_variables
+    TF_VAR_pipeline_iam_role: "arn:${AWS_PARTITION}:iam::${DEV_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - infra:cdktf-synth
+
+rds-dev:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-dev-db
+  variables:
+    <<: *dev_variables
+    STACK_TYPE: rds
+    TF_VAR_private_subnets: $VPC_PRIVATE_SUBNET_IDS
+    TF_VAR_public_subnets: $VPC_PUBLIC_SUBNET_IDS
+    TF_VAR_vpc_id: $VPC_ID
+    TF_VAR_kms_key_arn: $KMS_KEY_ARN
+    TF_VAR_vpc_endpoint_s3_pl_id: $VPC_ENDPOINT_S3_PL_ID
+    TF_VAR_rds_bastion_key: $RDS_BASTION_KEY_DEV
+    TF_VAR_route53_zone_id: $ROUTE53_ZONE_ID
+    TF_VAR_route53_domain_name: $ROUTE53_DOMAIN_NAME
+    TF_VAR_lambda_sg_id: $LAMBDA_SECURITY_GROUP
+  dependencies:
+    - infra:cdktf-synth
+    - kms-dev:cdktf-deploy
+    - networking-dev:cdktf-deploy
+    - dns-dev:cdktf-deploy
+
+dev:db-migration:
+  extends:
+    - .db-migration
+  stage: dev-db-migration
+  variables:
+    <<: *dev_variables
+  dependencies:
+    - rds-dev:cdktf-deploy
+
+serverless-deploy:dev-review:
+  extends:
+  - .serverless
+  stage: deploy-dev-review
+  variables:
+    <<: *dev_variables
+  dependencies:
+    - build-jar
+    - deploy-hooks-build
+    - infra:cdktf-synth
+    - networking-dev:cdktf-deploy
+    - dns-dev:cdktf-deploy
+    - rds-dev:cdktf-deploy
+    - kms-dev:cdktf-deploy
+  environment:
+    name: dev-review/$CI_COMMIT_REF_NAME
+    on_stop: stop:dev-review
+    auto_stop_in: 2 days
+  only:
+    - branches
+  except:
+    - master
+
+serverless-deploy:dev:
+  extends:
+    - .serverless
+  stage: deploy-dev
+  variables:
+    <<: *dev_variables
+  dependencies:
+    - build-jar
+    - deploy-hooks-build
+    - infra:cdktf-synth
+    - networking-dev:cdktf-deploy
+    - dns-dev:cdktf-deploy
+    - rds-dev:cdktf-deploy
+    - kms-dev:cdktf-deploy
+  environment:
+    name: dev
+    on_stop: stop:dev
+  only:
+    - master
+
+seed-program-services:dev:
+  extends:
+    - .before_script_assume_role
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-af3bba09
+  stage: post-deploy-dev
+  variables:
+    <<: *dev_variables
+    PROGRAM_SERVICES_TABLE_NAME: ProgramServices-$CI_COMMIT_REF_SLUG
+  script: 
+    - pip3 install boto3 names
+    - python3 dev-resources/populate_program_services_table.py
+  only:
+    - branches
+    - merge_requests
+
+authorizer-creds:dev-review:
+  extends:
+    - .authorizers
+  stage: post-deploy-dev
+  variables:
+    <<: *dev_variables
+    GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${LAMBDA_AUTHORIZER_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - serverless-deploy:dev-review
+  only:
+    - branches
+  except:
+    - master
+
+authorizer-creds:dev:
+  extends:
+    - .authorizers
+  stage: post-deploy-dev
+  variables:
+    <<: *dev_variables
+    GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${LAMBDA_AUTHORIZER_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - serverless-deploy:dev
+  only:
+    - master
+
+# e2e-dev-review:
+#   extends:
+#   - .e2e-dev
+#   variables:
+#     <<: *dev_variables
+#   only:
+#     - branches
+#   except:
+#     - merge_requests
+#     - master
+
+# e2e-dev-env:
+#   extends:
+#   - .e2e-dev
+#   variables:
+#     <<: *dev_variables
+#   only:
+#   - master
+
+# deploy in TEST 
+networking-test:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-test-infra
+  variables:
+    STACK_TYPE: networking
+    <<: *test_variables
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - merge_requests
+  - master
+
+dns-test:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-test-infra
+  variables:
+    STACK_TYPE: dns
+    <<: *test_variables
+  artifacts:
+    reports:
+      dotenv: variables.env
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - merge_requests
+  - master
+
+cloudwatch-test:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-test-infra
+  variables:
+    STACK_TYPE: cloudwatch
+    <<: *test_variables
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - merge_requests
+  - master
+
+kms-test:cdktf-deploy:
+  extends:
+  - .cdktf-deploy
+  stage: deploy-test-infra
+  variables:
+    STACK_TYPE: kms
+    <<: *test_variables
+    TF_VAR_pipeline_iam_role: "arn:${AWS_PARTITION}:iam::${TEST_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - merge_requests
+  - master
+
+rds-test:cdktf-deploy:
+  stage: deploy-test-db
+  extends:
+  - .cdktf-deploy
+  variables:
+    <<: *test_variables
+    STACK_TYPE: rds
+    TF_VAR_private_subnets: $VPC_PRIVATE_SUBNET_IDS
+    TF_VAR_public_subnets: $VPC_PUBLIC_SUBNET_IDS
+    TF_VAR_vpc_id: $VPC_ID
+    TF_VAR_kms_key_arn: $KMS_KEY_ARN
+    TF_VAR_vpc_endpoint_s3_pl_id: $VPC_ENDPOINT_S3_PL_ID
+    TF_VAR_rds_bastion_key: $RDS_BASTION_KEY_TEST
+    TF_VAR_route53_zone_id: $ROUTE53_ZONE_ID
+    TF_VAR_route53_domain_name: $ROUTE53_DOMAIN_NAME
+    TF_VAR_lambda_sg_id: $LAMBDA_SECURITY_GROUP
+  dependencies:
+    - infra:cdktf-synth
+    - kms-test:cdktf-deploy
+    - networking-test:cdktf-deploy
+    - dns-test:cdktf-deploy
+  only:
+    - merge_requests
+    - master
+
+test:db-migration:
+  extends:
+    - .db-migration
+  stage: test-db-migration
+  variables:
+    <<: *test_variables
+  dependencies:
+    - rds-test:cdktf-deploy
+  only:
+    - merge_requests
+    - master
+
+serverless-deploy:test-review:
+  extends:
+    - .serverless
+  stage: deploy-test-review
+  variables:
+    STACK_TYPE: serverless
+    <<: *test_variables
+  dependencies:
+    - build-jar
+    - deploy-hooks-build
+    - infra:cdktf-synth
+    - networking-test:cdktf-deploy
+    - dns-test:cdktf-deploy
+    - rds-test:cdktf-deploy
+    - kms-test:cdktf-deploy
+  environment:
+    name: test-review/$CI_COMMIT_REF_NAME
+    on_stop: stop:test-review
+    auto_stop_in: 2 days
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+serverless-deploy:test:
+  extends:
+    - .serverless
+  stage: deploy-test
+  variables:
+    STACK_TYPE: serverless
+    <<: *test_variables
+  dependencies:
+    - build-jar
+    - deploy-hooks-build
+    - infra:cdktf-synth
+    - networking-test:cdktf-deploy
+    - dns-test:cdktf-deploy
+    - rds-test:cdktf-deploy
+    - kms-test:cdktf-deploy
+  environment:
+    name: test
+    on_stop: stop:test
+  only:
+    - master
+
+seed-program-services:test:
+  extends:
+    - .before_script_assume_role
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-af3bba09
+  stage: post-deploy-test
+  variables:
+    <<: *test_variables
+    PROGRAM_SERVICES_TABLE_NAME: ProgramServices-$CI_COMMIT_REF_SLUG
+  script: 
+    - pip3 install boto3 names
+    - python3 dev-resources/populate_program_services_table.py
+  only:
+    - branches
+    - merge_requests    
+
+authorizer-creds:test-review:
+  extends:
+    - .before_script_assume_role
+    - .script_lambda_authorizer_put
+  stage: post-deploy-test
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/sam-cli:master-12e9785a
+  variables:
+    <<: *test_variables
+    GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${LAMBDA_AUTHORIZER_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - serverless-deploy:test-review
+  only:
+    - merge_requests
+
+authorizer-creds:test:
+  extends:
+    - .before_script_assume_role
+    - .script_lambda_authorizer_put
+  stage: post-deploy-test
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/sam-cli:master-12e9785a
+  variables:
+    <<: *test_variables
+    GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${LAMBDA_AUTHORIZER_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - serverless-deploy:test
+  only:
+    - master
+
+# e2e-test-review:
+#   extends:
+#   - .e2e-test
+#   variables:
+#     <<: *test_variables
+#   only:
+#     - merge_requests
+
+# e2e-test-env:
+#   extends:
+#   - .e2e-test
+#   variables:
+#     <<: *test_variables
+#   only:
+#     - master
+
+#deploy in prod
+networking-prod:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-prod-infra
+  variables:
+    STACK_TYPE: networking
+    <<: *prod_variables
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - master
+
+dns-prod:cdktf-deploy:
+  stage: deploy-prod-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: dns
+    <<: *prod_variables
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - master
+
+cloudwatch-prod:cdktf-deploy:
+  stage: deploy-prod-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: cloudwatch
+    <<: *prod_variables
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - master
+
+kms-prod:cdktf-deploy:
+  stage: deploy-prod-infra
+  extends:
+    - .cdktf-deploy
+  variables:
+    STACK_TYPE: kms
+    <<: *prod_variables
+    TF_VAR_pipeline_iam_role: "arn:${AWS_PARTITION}:iam::${PROD_GOV_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - infra:cdktf-synth
+  only:
+  - master
+
+rds-prod:cdktf-deploy:
+  extends:
+    - .cdktf-deploy
+  stage: deploy-prod-db
+  variables:
+    <<: *prod_variables
+    STACK_TYPE: rds
+    TF_VAR_private_subnets: $VPC_PRIVATE_SUBNET_IDS
+    TF_VAR_public_subnets: $VPC_PUBLIC_SUBNET_IDS
+    TF_VAR_vpc_id: $VPC_ID
+    TF_VAR_kms_key_arn: $KMS_KEY_ARN
+    TF_VAR_vpc_endpoint_s3_pl_id: $VPC_ENDPOINT_S3_PL_ID
+    TF_VAR_rds_bastion_key: $RDS_BASTION_KEY_PROD
+    TF_VAR_route53_zone_id: $ROUTE53_ZONE_ID
+    TF_VAR_route53_domain_name: $ROUTE53_DOMAIN_NAME
+    TF_VAR_lambda_sg_id: $LAMBDA_SECURITY_GROUP
+  dependencies:
+    - infra:cdktf-synth
+    - kms-prod:cdktf-deploy
+    - networking-prod:cdktf-deploy
+    - dns-prod:cdktf-deploy
+  only:
+  - master
+
+prod:db-migration:
+  extends:
+    - .db-migration
+  stage: prod-db-migration
+  variables:
+    <<: *prod_variables
+  dependencies:
+    - rds-prod:cdktf-deploy
+  only:
+  - master
+
+serverless-deploy:prod:
+  extends:
+    - .serverless
+  stage: deploy-prod
+  variables:
+    <<: *prod_variables
+  dependencies:
+    - build-jar
+    - deploy-hooks-build
+    - infra:cdktf-synth
+    - networking-prod:cdktf-deploy
+    - dns-prod:cdktf-deploy
+    - rds-prod:cdktf-deploy
+    - kms-prod:cdktf-deploy
+  environment:
+    name: prod
+    on_stop: stop:prod
+  only:
+    - master
+
+authorizer-creds:prod:
+  extends:
+    - .authorizers
+  stage: post-deploy-prod
+  variables:
+    <<: *prod_variables
+    GOV_SERVICE_ROLE: "arn:${AWS_PARTITION}:iam::${LAMBDA_AUTHORIZER_ACCOUNT}:role/${CI_ROLE_NAME}"
+  dependencies:
+    - serverless-deploy:prod
+  only:
+    - master
+
+# Stop ENVs
+stop:dev-review:
+  extends:
+    - .before_script_assume_role
+    - .script_delete_sam_stack
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-77b29f04
+  stage: stop-envs
+  variables:
+    <<: *dev_variables
+    GIT_STRATEGY: none
+    TF_WARN_OUTPUT_ERRORS: "1"
+    TF_VAR_pipeline_iam_role: default
+    TF_VAR_private_subnets: default
+    TF_VAR_public_subnets: default
+    TF_VAR_vpc_id: default
+    TF_VAR_kms_key_arn: default
+    TF_VAR_vpc_endpoint_s3_pl_id: default
+    TF_VAR_rds_bastion_key: default
+    TF_VAR_route53_zone_id: default
+    TF_VAR_route53_domain_name: default
+    TF_VAR_lambda_sg_id: default
+    TF_VAR_environment: default
+    TF_VAR_ca_trustfile_path: default
+    TF_VAR_lambda_authorizer_account: default
+    TF_VAR_mtls_lambda_authorizer_name: default
+    TF_VAR_oauth_lambda_authorizer_name: default
+    TF_VAR_db_connection_string: default
+    TF_VAR_db_username: default
+    TF_VAR_db_password: default
+    TF_VAR_lambda_execution_role_arn: default
+    TF_VAR_lambda_security_group: default
+    TF_VAR_vpc_private_subnet_ids: default  
+    TF_VAR_mtls_domain_name: default
+    TF_VAR_api_domain_name: default
+  when: manual
+  environment:
+    name: dev-review/$CI_COMMIT_REF_NAME
+    action: stop
+  dependencies:
+    - build-jar
+    - infra:cdktf-synth
+    - deploy-hooks-build
+    - cloudwatch-dev:cdktf-deploy
+    - dns-dev:cdktf-deploy
+    - networking-dev:cdktf-deploy
+    - rds-dev:cdktf-deploy
+    - kms-dev:cdktf-deploy
+    - serverless-deploy:dev-review
+  only:
+    - branches
+  except:
+    - merge_requests
+    - master
+
+stop:test-review:
+  extends:
+    - .before_script_assume_role
+    - .script_delete_sam_stack
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-77b29f04
+  stage: stop-envs
+  variables:
+    <<: *test_variables
+    GIT_STRATEGY: none
+    TF_WARN_OUTPUT_ERRORS: "1"
+    TF_VAR_pipeline_iam_role: default
+    TF_VAR_private_subnets: default
+    TF_VAR_public_subnets: default
+    TF_VAR_vpc_id: default
+    TF_VAR_kms_key_arn: default
+    TF_VAR_vpc_endpoint_s3_pl_id: default
+    TF_VAR_rds_bastion_key: default
+    TF_VAR_route53_zone_id: default
+    TF_VAR_route53_domain_name: default
+    TF_VAR_lambda_sg_id: default
+    TF_VAR_environment: default
+    TF_VAR_ca_trustfile_path: default
+    TF_VAR_lambda_authorizer_account: default
+    TF_VAR_mtls_lambda_authorizer_name: default
+    TF_VAR_oauth_lambda_authorizer_name: default
+    TF_VAR_db_connection_string: default
+    TF_VAR_db_username: default
+    TF_VAR_db_password: default
+    TF_VAR_lambda_execution_role_arn: default
+    TF_VAR_lambda_security_group: default
+    TF_VAR_vpc_private_subnet_ids: default  
+    TF_VAR_mtls_domain_name: default
+    TF_VAR_api_domain_name: default
+  when: manual
+  environment:
+    name: test-review/$CI_COMMIT_REF_NAME
+    action: stop
+  dependencies:
+    - build-jar
+    - infra:cdktf-synth
+    - deploy-hooks-build
+    - cloudwatch-test:cdktf-deploy
+    - dns-test:cdktf-deploy
+    - networking-test:cdktf-deploy
+    - rds-test:cdktf-deploy
+    - kms-test:cdktf-deploy
+    - serverless-deploy:test-review
+  only:
+    - merge_requests
+
+stop:dev:
+  extends:
+    - .before_script_assume_role
+    - .script_delete_sam_stack
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-77b29f04
+  stage: stop-envs
+  variables:
+    <<: *dev_variables
+    GIT_STRATEGY: none
+    TF_WARN_OUTPUT_ERRORS: "1"
+    TF_VAR_pipeline_iam_role: default
+    TF_VAR_private_subnets: default
+    TF_VAR_public_subnets: default
+    TF_VAR_vpc_id: default
+    TF_VAR_kms_key_arn: default
+    TF_VAR_vpc_endpoint_s3_pl_id: default
+    TF_VAR_rds_bastion_key: default
+    TF_VAR_route53_zone_id: default
+    TF_VAR_route53_domain_name: default
+    TF_VAR_lambda_sg_id: default
+    TF_VAR_environment: default
+    TF_VAR_ca_trustfile_path: default
+    TF_VAR_lambda_authorizer_account: default
+    TF_VAR_mtls_lambda_authorizer_name: default
+    TF_VAR_oauth_lambda_authorizer_name: default
+    TF_VAR_db_connection_string: default
+    TF_VAR_db_username: default
+    TF_VAR_db_password: default
+    TF_VAR_lambda_execution_role_arn: default
+    TF_VAR_lambda_security_group: default
+    TF_VAR_vpc_private_subnet_ids: default  
+    TF_VAR_mtls_domain_name: default
+    TF_VAR_api_domain_name: default
+  when: manual
+  environment:
+    name: dev
+    action: stop
+  dependencies:
+    - build-jar
+    - infra:cdktf-synth
+    - deploy-hooks-build
+    - cloudwatch-dev:cdktf-deploy
+    - dns-dev:cdktf-deploy
+    - networking-dev:cdktf-deploy
+    - rds-dev:cdktf-deploy
+    - kms-dev:cdktf-deploy
+    - serverless-deploy:dev
+  only:
+    - master
+
+stop:test:
+  extends:
+    - .before_script_assume_role
+    - .script_delete_sam_stack
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-77b29f04
+  stage: stop-envs
+  variables:
+    <<: *test_variables
+    GIT_STRATEGY: none
+    TF_WARN_OUTPUT_ERRORS: "1"
+    TF_VAR_pipeline_iam_role: default
+    TF_VAR_private_subnets: default
+    TF_VAR_public_subnets: default
+    TF_VAR_vpc_id: default
+    TF_VAR_kms_key_arn: default
+    TF_VAR_vpc_endpoint_s3_pl_id: default
+    TF_VAR_rds_bastion_key: default
+    TF_VAR_route53_zone_id: default
+    TF_VAR_route53_domain_name: default
+    TF_VAR_lambda_sg_id: default
+    TF_VAR_environment: default
+    TF_VAR_ca_trustfile_path: default
+    TF_VAR_lambda_authorizer_account: default
+    TF_VAR_mtls_lambda_authorizer_name: default
+    TF_VAR_oauth_lambda_authorizer_name: default
+    TF_VAR_db_connection_string: default
+    TF_VAR_db_username: default
+    TF_VAR_db_password: default
+    TF_VAR_lambda_execution_role_arn: default
+    TF_VAR_lambda_security_group: default
+    TF_VAR_vpc_private_subnet_ids: default  
+    TF_VAR_mtls_domain_name: default
+    TF_VAR_api_domain_name: default
+  when: manual
+  environment:
+    name: test
+    action: stop
+  dependencies:
+    - build-jar
+    - infra:cdktf-synth
+    - deploy-hooks-build
+    - cloudwatch-test:cdktf-deploy
+    - dns-test:cdktf-deploy
+    - networking-dev:cdktf-deploy
+    - rds-test:cdktf-deploy
+    - kms-test:cdktf-deploy
+    - serverless-deploy:test
+  only:
+    - master
+
+stop:prod:
+  extends:
+    - .before_script_assume_role
+    - .script_delete_sam_stack
+  image: registry.gitlab.build.us.idemia.io/idemia/microservices_collaboration/microservicecitemplates/cdk-ci:master-77b29f04
+  stage: stop-envs
+  variables:
+    <<: *prod_variables
+    GIT_STRATEGY: none
+    TF_WARN_OUTPUT_ERRORS: "1"
+    TF_VAR_pipeline_iam_role: default
+    TF_VAR_private_subnets: default
+    TF_VAR_public_subnets: default
+    TF_VAR_vpc_id: default
+    TF_VAR_kms_key_arn: default
+    TF_VAR_vpc_endpoint_s3_pl_id: default
+    TF_VAR_rds_bastion_key: default
+    TF_VAR_route53_zone_id: default
+    TF_VAR_route53_domain_name: default
+    TF_VAR_lambda_sg_id: default
+    TF_VAR_environment: default
+    TF_VAR_ca_trustfile_path: default
+    TF_VAR_lambda_authorizer_account: default
+    TF_VAR_mtls_lambda_authorizer_name: default
+    TF_VAR_oauth_lambda_authorizer_name: default
+    TF_VAR_db_connection_string: default
+    TF_VAR_db_username: default
+    TF_VAR_db_password: default
+    TF_VAR_lambda_execution_role_arn: default
+    TF_VAR_lambda_security_group: default
+    TF_VAR_vpc_private_subnet_ids: default  
+    TF_VAR_mtls_domain_name: default
+    TF_VAR_api_domain_name: default
+  when: manual
+  environment:
+    name: prod
+    action: stop
+  dependencies:
+    - build-jar
+    - infra:cdktf-synth
+    - deploy-hooks-build
+    - cloudwatch-prod:cdktf-deploy
+    - dns-prod:cdktf-deploy
+    - networking-prod:cdktf-deploy
+    - rds-prod:cdktf-deploy
+    - kms-prod:cdktf-deploy
+    - serverless-deploy:prod
+  only:
+    - master

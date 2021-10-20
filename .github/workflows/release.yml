@@ -69,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
     if: needs.release.outputs.latest_commit == github.sha
     steps:
       - name: Download build artifacts
@@ -80,31 +81,7 @@ jobs:
         run: npx -p jsii-release@latest jsii-release-npm
         env:
           NPM_DIST_TAG: latest
-          NPM_REGISTRY: registry.npmjs.org
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    container:
-      image: jsii/superchain:1-buster-slim-node14
-  release_maven:
-    name: Publish to Maven Central
-    needs: release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    if: needs.release.outputs.latest_commit == github.sha
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: dist
-          path: dist
-      - name: Release
-        run: npx -p jsii-release@latest jsii-release-maven
-        env:
-          MAVEN_ENDPOINT: https://maven.pkg.github.com/
-          MAVEN_SERVER_ID: github
-          MAVEN_REPOSITORY_URL: https://maven.pkg.github.com/desiby/jsii-maven-module
-          MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          MAVEN_USERNAME: ${{ github.actor }}
+          NPM_REGISTRY: npm.pkg.github.com
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     container:
       image: jsii/superchain:1-buster-slim-node14
