@@ -25,15 +25,15 @@ export class JavaMicroserviceProject extends JavaProject {
       ...options,
       sample: true,
       // Custom project stuff
-      artifactId: "jsii-java-module",
-      groupId: "com.idemia.isna.vss.microservice",
-      description: "Base Java Serverless Microservice template to be used for Idemia projects"
+      artifactId: 'jsii-java-module',
+      groupId: 'com.idemia.isna.vss.microservice',
+      description: 'Base Java Serverless Microservice template to be used for Idemia projects',
 
     });
 
     this.projectName = path.basename(process.cwd());
 
-    this.addDependency("org.postgresql/postgresql@42.2.20");
+    this.addDependency('org.postgresql/postgresql@42.2.20');
 
     const prettierIgnoreLines = options.prettierIgnore ?? ['*'];
     new TextFile(this, '.prettierignore', {
@@ -58,18 +58,18 @@ class Sample extends Component {
   }
 
   public synthesize() {
-    
+
 
     //const projectType = pascalCase(this.demoProject.projectName);
 
-    new SampleDir(this.demoProject, ".", {
-      sourceDir: "gitlab_ci.yml"
+    new SampleDir(this.demoProject, '.', {
+      sourceDir: 'gitlab_ci.yml',
     });
 
   }
 
-//   private createMainTsContents(projectName: string, projectType: string): string {
-//     return ``;
-//   }
+  //   private createMainTsContents(projectName: string, projectType: string): string {
+  //     return ``;
+  //   }
 
 }
